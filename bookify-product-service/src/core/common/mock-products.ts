@@ -1,4 +1,4 @@
-export const products = [
+export const MOCK_PRODUCTS = [
   {
     count: 4,
     description: "Short Product Description1",

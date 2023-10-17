@@ -1,8 +1,9 @@
+import createProduct from "@functions/createProduct";
+import getProductById from "@functions/getProductById";
+import seedData from "@functions/seedData";
 import type { AWS } from "@serverless/typescript";
-
-import getProductsList from "@functions/getProductById";
-import getProductById from "@functions/getProductsList";
-import putItemToDb from "@functions/putItemToDb";
+import { PRODUCT_TABLE_NAME, STOCK_TABLE_NAME } from "src/core/util/globals";
+import { getDatabaseConfiguration } from "src/core/util/resource.util";
 
 const serverlessConfiguration: AWS = {
   service: "bookify-product-service",
@@ -20,9 +21,11 @@ const serverlessConfiguration: AWS = {
           "dynamodb:PutItem",
           "dynamodb:UpdateItem",
           "dynamodb:DeleteItem",
+          "dynamodb:BatchWriteItem",
         ],
         Resource: [
-          "arn:aws:dynamodb:us-east-1:447998169571:table/ProductsTable",
+          "arn:aws:dynamodb:us-east-1:447998169571:table/products",
+          "arn:aws:dynamodb:us-east-1:447998169571:table/stocks",
         ],
       },
     ],
@@ -39,9 +42,25 @@ const serverlessConfiguration: AWS = {
   },
   // import the function via paths
   functions: {
-    getProductsList,
+    getProductList: {
+      handler: "src/functions/getProductsList/handler.main",
+      events: [
+        {
+          http: {
+            method: "get",
+            path: "products",
+            cors: {
+              origins: ["*"],
+              allowCredentials: true,
+              methods: ["ANY"],
+            },
+          },
+        },
+      ],
+    },
     getProductById,
-    putItemToDb,
+    seedData,
+    createProduct,
   },
   package: { individually: true },
   custom: {
@@ -58,50 +77,36 @@ const serverlessConfiguration: AWS = {
   },
   resources: {
     Resources: {
-      ProductsTable: {
-        Type: "AWS::DynamoDB::Table",
-        Properties: {
-          TableName: "ProductsTable",
-          AttributeDefinitions: [
-            {
-              AttributeName: "id",
-              AttributeType: "S",
-            },
-          ],
-          KeySchema: [
-            {
-              AttributeName: "id",
-              KeyType: "HASH",
-            },
-          ],
-          ProvisionedThroughput: {
-            ReadCapacityUnits: 1,
-            WriteCapacityUnits: 1,
+      ...getDatabaseConfiguration(
+        PRODUCT_TABLE_NAME,
+        [
+          {
+            AttributeName: "id",
+            AttributeType: "S",
           },
-        },
-      },
-      StocksTable: {
-        Type: "AWS::DynamoDB::Table",
-        Properties: {
-          TableName: "StocksTable",
-          AttributeDefinitions: [
-            {
-              AttributeName: "id",
-              AttributeType: "S",
-            },
-          ],
-          KeySchema: [
-            {
-              AttributeName: "id",
-              KeyType: "HASH",
-            },
-          ],
-          ProvisionedThroughput: {
-            ReadCapacityUnits: 1,
-            WriteCapacityUnits: 1,
+        ],
+        [
+          {
+            AttributeName: "id",
+            KeyType: "HASH",
           },
-        },
-      },
+        ]
+      ),
+      ...getDatabaseConfiguration(
+        STOCK_TABLE_NAME,
+        [
+          {
+            AttributeName: "product_id",
+            AttributeType: "S",
+          },
+        ],
+        [
+          {
+            AttributeName: "product_id",
+            KeyType: "HASH",
+          },
+        ]
+      ),
     },
   },
 };

@@ -1,46 +1,24 @@
 import type { ValidatedEventAPIGatewayProxyEvent } from "@libs/api-gateway";
 import { formatJSONResponse } from "@libs/api-gateway";
-import { products } from "mock-products";
+import { middyfy } from "@libs/lambda";
+import { ProductService } from "src/core/services/products.service";
 import schema from "./schema";
 
-import { middyfy } from "@libs/lambda";
+const productService = new ProductService();
 
-const AWS = require("aws-sdk");
-const dynamodb = new AWS.DynamoDB.DocumentClient();
-
-async function getAllProducts() {
-  const params = {
-    TableName: "ProductsLists", // DynamoDB tablonuzun adını buraya ekleyin
-  };
-
-  try {
-    const data = await dynamodb.scan(params).promise();
-    if (data.Items) {
-      return data.Items;
-    } else {
-      return []; // Herhangi bir ürün bulunamadı
-    }
-  } catch (error) {
-    console.error("Error:", error);
-    throw error;
-  }
-}
-
-const getProductsList: ValidatedEventAPIGatewayProxyEvent<
+const getProductList: ValidatedEventAPIGatewayProxyEvent<
   typeof schema
 > = async (event) => {
-  const books = getAllProducts()
-    .then((products) => {
-      return products;
-    })
-    .catch((error) => {
-      console.error("Error:", error);
-    });
-  return formatJSONResponse({
-    data: products,
-    books,
-    event,
-  });
+  const productsResponse = await productService.getAll();
+
+  if (!productsResponse.success) {
+    return {
+      statusCode: 500,
+      body: JSON.stringify(productsResponse),
+    };
+  }
+
+  return formatJSONResponse({ ...productsResponse, event });
 };
 
-export const main = middyfy(getProductsList);
+export const main = middyfy(getProductList);

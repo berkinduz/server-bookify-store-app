@@ -6,6 +6,20 @@ export default {
       http: {
         method: "post",
         path: "products/create",
+        cors: {
+          origins: ["*"],
+          allowCredentials: true,
+          methods: ["POST", "OPTIONS"] as (
+            | "GET"
+            | "POST"
+            | "PUT"
+            | "PATCH"
+            | "OPTIONS"
+            | "HEAD"
+            | "DELETE"
+            | "ANY"
+          )[],
+        },
       },
     },
   ],

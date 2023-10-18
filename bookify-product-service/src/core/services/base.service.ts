@@ -1,9 +1,17 @@
-import { ServiceResponse } from "src/core/types";
 import * as AWS from "aws-sdk";
+import { ServiceResponse } from "src/core/types";
+import { v4 as uuidv4 } from "uuid";
 
 export class BaseService<T> {
+  constructor(tableName) {
+    this.tableName = tableName;
+  }
+
   protected tableName = "";
   protected client = new AWS.DynamoDB.DocumentClient();
+  protected db = new AWS.DynamoDB();
+
+  getUniqueId = () => uuidv4();
 
   getById = (id: string) =>
     new Promise<ServiceResponse<T>>((resolve, _) => {
@@ -92,4 +100,8 @@ export class BaseService<T> {
         }
       });
     });
+
+  convertToObject = <T = any>(a: AWS.DynamoDB.AttributeMap) => {
+    return AWS.DynamoDB.Converter.unmarshall(a) as T;
+  };
 }

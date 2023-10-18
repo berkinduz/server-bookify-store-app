@@ -7,8 +7,8 @@ import { StocksService } from "./stocks.service";
 
 export class ProductService extends BaseService<Product> {
   stocksService = new StocksService();
-  constructor() {
-    super();
+  constructor(tableName = PRODUCT_TABLE_NAME) {
+    super(tableName);
   }
 
   protected override tableName = PRODUCT_TABLE_NAME;

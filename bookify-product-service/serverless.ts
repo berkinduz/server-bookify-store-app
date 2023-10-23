@@ -1,6 +1,8 @@
 import createProduct from "@functions/createProduct";
 import getProductById from "@functions/getProductById";
 import seedData from "@functions/seedData";
+import importProductsFile from "@functions/importProductsFile";
+import importFileParser from "@functions/importFileParser";
 import type { AWS } from "@serverless/typescript";
 import { PRODUCT_TABLE_NAME, STOCK_TABLE_NAME } from "src/core/util/globals";
 import { getDatabaseConfiguration } from "src/core/util/resource.util";
@@ -58,6 +60,8 @@ const serverlessConfiguration: AWS = {
         },
       ],
     },
+    importFileParser,
+    importProductsFile,
     getProductById,
     seedData,
     createProduct,
@@ -75,6 +79,19 @@ const serverlessConfiguration: AWS = {
       concurrency: 10,
     },
   },
+  events: [
+    {
+      "s3": {
+        "bucket": "bookify-uploaded",
+        "event": "s3:ObjectCreated:*",
+        "rules": [
+          {
+            "prefix": "uploaded/"
+          }
+        ]
+      }
+    }
+  ]
   resources: {
     Resources: {
       ...getDatabaseConfiguration(

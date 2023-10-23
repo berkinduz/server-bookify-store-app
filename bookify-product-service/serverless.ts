@@ -1,13 +1,34 @@
+import createProduct from "@functions/createProduct";
+import getProductById from "@functions/getProductById";
+import seedData from "@functions/seedData";
 import type { AWS } from "@serverless/typescript";
-
-import getProductsList from "@functions/getProductById";
-import getProductById from "@functions/getProductsList";
+import { PRODUCT_TABLE_NAME, STOCK_TABLE_NAME } from "src/core/util/globals";
+import { getDatabaseConfiguration } from "src/core/util/resource.util";
 
 const serverlessConfiguration: AWS = {
   service: "bookify-product-service",
   frameworkVersion: "3",
   plugins: ["serverless-esbuild"],
   provider: {
+    iamRoleStatements: [
+      {
+        Effect: "Allow",
+        Action: [
+          "dynamodb:DescribeTable",
+          "dynamodb:Query",
+          "dynamodb:Scan",
+          "dynamodb:GetItem",
+          "dynamodb:PutItem",
+          "dynamodb:UpdateItem",
+          "dynamodb:DeleteItem",
+          "dynamodb:BatchWriteItem",
+        ],
+        Resource: [
+          "arn:aws:dynamodb:us-east-1:447998169571:table/products",
+          "arn:aws:dynamodb:us-east-1:447998169571:table/stocks",
+        ],
+      },
+    ],
     name: "aws",
     runtime: "nodejs14.x",
     apiGateway: {
@@ -20,7 +41,27 @@ const serverlessConfiguration: AWS = {
     },
   },
   // import the function via paths
-  functions: { getProductsList, getProductById },
+  functions: {
+    getProductList: {
+      handler: "src/functions/getProductsList/handler.main",
+      events: [
+        {
+          http: {
+            method: "get",
+            path: "products",
+            cors: {
+              origins: ["*"],
+              allowCredentials: true,
+              methods: ["ANY"],
+            },
+          },
+        },
+      ],
+    },
+    getProductById,
+    seedData,
+    createProduct,
+  },
   package: { individually: true },
   custom: {
     esbuild: {
@@ -32,6 +73,40 @@ const serverlessConfiguration: AWS = {
       define: { "require.resolve": undefined },
       platform: "node",
       concurrency: 10,
+    },
+  },
+  resources: {
+    Resources: {
+      ...getDatabaseConfiguration(
+        PRODUCT_TABLE_NAME,
+        [
+          {
+            AttributeName: "id",
+            AttributeType: "S",
+          },
+        ],
+        [
+          {
+            AttributeName: "id",
+            KeyType: "HASH",
+          },
+        ]
+      ),
+      ...getDatabaseConfiguration(
+        STOCK_TABLE_NAME,
+        [
+          {
+            AttributeName: "product_id",
+            AttributeType: "S",
+          },
+        ],
+        [
+          {
+            AttributeName: "product_id",
+            KeyType: "HASH",
+          },
+        ]
+      ),
     },
   },
 };

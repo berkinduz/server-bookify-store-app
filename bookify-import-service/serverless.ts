@@ -9,7 +9,7 @@ const serverlessConfiguration: AWS = {
       {
         Effect: "Allow",
         Action: ["s3:PutObject"],
-        Resource: "arn:aws:s3:::your-s3-bookify-import-bucket/*", // Replace with your S3 bucket ARN
+        Resource: "arn:aws:s3:::bookify-import-bucket/*", // Replace with your S3 bucket ARN
       },
     ],
     name: "aws",

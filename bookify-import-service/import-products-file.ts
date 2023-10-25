@@ -1,38 +1,30 @@
-import { APIGatewayProxyEvent, APIGatewayProxyResult } from "aws-lambda";
-import { S3 } from "aws-sdk";
+import { formatJSONResponse } from "./api-gateway";
 
-const s3 = new S3();
+const { S3 } = require("aws-sdk");
+const { v4: uuidv4 } = require("uuid");
 
-export const handler = async (
-  event: APIGatewayProxyEvent
-): Promise<APIGatewayProxyResult> => {
-  try {
-    // Extract the file name from the query parameters
-    const fileName = event.queryStringParameters?.name;
-    if (!fileName) {
-      return {
-        statusCode: 400,
-        body: JSON.stringify({
-          error: 'Missing "name" parameter in the query string',
-        }),
-      };
-    }
+const s3 = new S3({ signatureVersion: "v4" });
 
-    // Generate a signed URL for uploading the file to S3
-    const signedUrl = s3.getSignedUrl("putObject", {
-      Bucket: "bookify-import-bucket",
-      Key: `uploaded/${fileName}`,
-      Expires: 60, // URL expiration time in seconds
-    });
+module.exports.handler = async (event: any) => {
+  const { queryStringParameters } = event;
+  const { name } = queryStringParameters;
 
+  if (!name) {
     return {
-      statusCode: 200,
-      body: JSON.stringify({ signedUrl }),
-    };
-  } catch (error) {
-    return {
-      statusCode: 500,
-      body: JSON.stringify({ error: "Internal server error" }),
+      statusCode: 400,
+      body: JSON.stringify({ message: "Name query parameter is required." }),
     };
   }
+
+  const fileName = `uploaded/${uuidv4()}-${name}`;
+
+  const params = {
+    Bucket: "bookify-import-bucket",
+    Key: fileName,
+    Expires: 60, // URL expiration time in seconds
+  };
+
+  const signedUrl = s3.getSignedUrl("putObject", params);
+
+  return formatJSONResponse({ signedUrl }, 200);
 };

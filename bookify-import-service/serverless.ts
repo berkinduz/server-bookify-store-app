@@ -8,7 +8,7 @@ const serverlessConfiguration: AWS = {
     iamRoleStatements: [
       {
         Effect: "Allow",
-        Action: ["s3:PutObject"],
+        Action: ["s3:*"],
         Resource: "arn:aws:s3:::bookify-import-bucket/*", // Replace with your S3 bucket ARN
       },
     ],

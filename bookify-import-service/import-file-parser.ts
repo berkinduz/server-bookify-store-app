@@ -1,36 +1,35 @@
-import { S3Event, S3Handler } from "aws-lambda";
-import * as AWS from "aws-sdk";
-import * as Papa from "papaparse";
+import { Readable } from "stream";
 
+const csv = require("csv-parser");
+const AWS = require("aws-sdk");
 const s3 = new AWS.S3();
 
-export const handler: S3Handler = async (event: S3Event) => {
+module.exports.handler = async (event: any) => {
+  console.log("Parsing csv file.");
   for (const record of event.Records) {
+    console.log(record, "record");
     const s3Object = record.s3;
+    console.log(s3Object, "s3object");
     const bucketName = s3Object.bucket.name;
     const objectKey = s3Object.object.key;
 
     console.log(`Processing S3 object: ${objectKey} in bucket: ${bucketName}`);
 
-    // Use the S3 SDK to get the object
     const s3Response = await s3
       .getObject({ Bucket: bucketName, Key: objectKey })
       .promise();
 
-    // Create a readable stream from the object's Body
-    const s3Stream = s3Response.Body;
+    const s3Stream = new Readable();
+    s3Stream._read = () => {}; // Define a dummy _read function
 
-    // Parse the CSV using PapaParse
-    Papa.parse(s3Stream as any, {
-      header: true, // Assuming the first row is the header
-      dynamicTyping: true, // Convert data types if possible
-      complete: (results) => {
-        const records = results.data;
-        for (const row of records) {
-          // Log each record to CloudWatch
-          console.log("CSV Record:", row);
-        }
-      },
-    });
+    s3Stream.push(s3Response.Body); // Push the S3 response body into the stream
+    s3Stream.push(null); // Signal the end of the stream
+    const results: any = [];
+    s3Stream
+      .pipe(csv({ headers: false, separator: "," }))
+      .on("data", (data: any) => results.push(data))
+      .on("end", () => {
+        console.log(results);
+      });
   }
 };

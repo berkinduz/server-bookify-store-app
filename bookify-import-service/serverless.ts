@@ -11,6 +11,11 @@ const serverlessConfiguration: AWS = {
         Action: ["s3:*"],
         Resource: "arn:aws:s3:::bookify-import-bucket/*", // Replace with your S3 bucket ARN
       },
+      {
+        Effect: "Allow",
+        Action: ["sqs:ListQueues", "sqs:ReceiveMessage", "sqs:SendMessage"],
+        Resource: "arn:aws:sqs:us-east-1:447998169571:catalogItemsQueue",
+      },
     ],
     name: "aws",
     runtime: "nodejs14.x",

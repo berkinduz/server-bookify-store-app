@@ -36,6 +36,13 @@ const serverlessConfiguration: AWS = {
         {
           http: {
             method: "get",
+            authorizer: {
+              arn: "arn:aws:lambda:us-east-1:447998169571:function:authorization-service-dev-basicAuthorizer",
+              name: "basicAuthorizer",
+              resultTtlInSeconds: 0,
+              identitySource: "method.request.header.Authorization",
+              type: "token",
+            },
             path: "import",
             cors: {
               origins: ["*"],
@@ -85,7 +92,23 @@ const serverlessConfiguration: AWS = {
       concurrency: 10,
     },
   },
-  resources: {},
+  resources: {
+    Resources: {
+      GatewayResponse: {
+        Type: "AWS::ApiGateway::GatewayResponse",
+        Properties: {
+          ResponseParameters: {
+            "gatewayresponse.header.Access-Control-Allow-Origin": "'*'",
+            "gatewayresponse.header.Access-Control-Allow-Headers": "'*'",
+          },
+          ResponseType: "DEFAULT_4XX",
+          RestApiId: {
+            Ref: "ApiGatewayRestApi",
+          },
+        },
+      },
+    },
+  },
 };
 
 module.exports = serverlessConfiguration;

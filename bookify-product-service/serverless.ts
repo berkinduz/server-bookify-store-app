@@ -1,6 +1,7 @@
 import createProduct from "@functions/createProduct";
 import getProductById from "@functions/getProductById";
 import seedData from "@functions/seedData";
+import catalogBatchProcess from "@functions/catalogBatchProcess";
 import type { AWS } from "@serverless/typescript";
 import { PRODUCT_TABLE_NAME, STOCK_TABLE_NAME } from "src/core/util/globals";
 import { getDatabaseConfiguration } from "src/core/util/resource.util";
@@ -27,6 +28,11 @@ const serverlessConfiguration: AWS = {
           "arn:aws:dynamodb:us-east-1:447998169571:table/products",
           "arn:aws:dynamodb:us-east-1:447998169571:table/stocks",
         ],
+      },
+      {
+        Effect: "Allow",
+        Action: ["sns:Publish"],
+        Resource: ["arn:aws:sns:us-east-1:447998169571:createProductTopic"],
       },
     ],
     name: "aws",
@@ -58,6 +64,7 @@ const serverlessConfiguration: AWS = {
         },
       ],
     },
+    catalogBatchProcess,
     getProductById,
     seedData,
     createProduct,
@@ -77,6 +84,29 @@ const serverlessConfiguration: AWS = {
   },
   resources: {
     Resources: {
+      catalogItemsQueue: {
+        Type: "AWS::SQS::Queue",
+        Properties: {
+          QueueName: "catalogItemsQueue",
+        },
+      },
+      CreateProductTopic: {
+        Type: "AWS::SNS::Topic",
+        Properties: {
+          DisplayName: "Create Product Topic",
+          TopicName: "createProductTopic",
+        },
+      },
+      CreateProductTopicSubscription: {
+        Type: "AWS::SNS::Subscription",
+        Properties: {
+          Protocol: "email",
+          TopicArn: {
+            Ref: "CreateProductTopic",
+          },
+          Endpoint: "mberkinduz@gmail.com",
+        },
+      },
       ...getDatabaseConfiguration(
         PRODUCT_TABLE_NAME,
         [

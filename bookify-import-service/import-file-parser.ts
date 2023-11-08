@@ -1,8 +1,13 @@
 import { Readable } from "stream";
+import { convertCsvProductToObject } from "./data.util";
 
 const csv = require("csv-parser");
 const AWS = require("aws-sdk");
 const s3 = new AWS.S3();
+const sqs = new AWS.SQS({ apiVersion: "2012-11-05" });
+
+const queueUrl =
+  "https://sqs.us-east-1.amazonaws.com/447998169571/catalogItemsQueue";
 
 module.exports.handler = async (event: any) => {
   console.log("Parsing csv file.");
@@ -25,11 +30,33 @@ module.exports.handler = async (event: any) => {
     s3Stream.push(s3Response.Body); // Push the S3 response body into the stream
     s3Stream.push(null); // Signal the end of the stream
     const results: any = [];
+
     s3Stream
       .pipe(csv({ headers: false, separator: "," }))
-      .on("data", (data: any) => results.push(data))
+      .on("data", (data: any) => {
+        results.push(data);
+
+        console.log("SQS Send Started");
+      })
       .on("end", () => {
-        console.log(results);
+        const mappedResults = results.map(
+          (data: any) => convertCsvProductToObject(data) as any
+        );
+
+        mappedResults.forEach((product: any) => {
+          const sqsParams = {
+            QueueUrl: queueUrl,
+            MessageBody: JSON.stringify(product),
+          };
+
+          sqs.sendMessage(sqsParams, (err: any, data: any) => {
+            if (err) {
+              console.error("Error while sending message:", err);
+            } else {
+              console.log("SQS Message sent successfully!", data);
+            }
+          });
+        });
       });
   }
 };

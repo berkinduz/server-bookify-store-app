@@ -1,0 +1,11 @@
+{
+  "extends": "./tsconfig.json",
+  "include": [
+    "src",
+    "serverless.ts",
+    ".eslintrc.js"
+  ],
+  "exclude": [
+      "dist"
+  ]
+}
